@@ -1,0 +1,52 @@
+id,name,puv_type,feature_type,waypoints,source
+J01,Ayala - Mantrade,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J02,Ayala - Paterros,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J03,Ayala - Washington,Jeepney,route,7,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J04,Ayala - Zapote,Jeepney,route,6,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J05,Ayala loop,Jeepney,route,9,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J06,Bel-air - Washington,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J07,Dian - Libertad,Jeepney,route,4,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J08,Dominga - Edison - Pasay,Jeepney,route,4,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J09,Evangelista - Libertad,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J10,FTI - Walter Mart / Pasay Rd.,Jeepney,route,6,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J11,Guadalupe - AFP Housing,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J12,Guadalupe - Ayala,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J13,Guadalupe - Cartimar,Jeepney,route,6,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J14,Guadalupe - Crossing,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J15,Guadalupe - Del Pan,Jeepney,route,7,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J16,Guadalupe - Fort Bonifacio,Jeepney,route,6,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J17,Guadalupe - FTI,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J18,Guadalupe - L. Guinto,Jeepney,route,7,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J19,Guadalupe - Masilang,Jeepney,route,4,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J20,Guadalupe - Paterros,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J21,Kamuning - Malugay,Jeepney,route,8,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J22,Kayamanan C - EDSA,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J23,Makati Ave - Burgos - L. Guinto,Jeepney,route,7,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J24,Makati Loop,Jeepney,route,8,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J25,Pasay Rd. - Libertad,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J26,PRC - Mantrade - Kayamanan C,Jeepney,route,6,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J27,PRC - Pasay - Libertad,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J28,South Forbes - Gate2 - EDSA,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J29,Washington - Libertad,Jeepney,route,3,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+J30,Washington - Mantrade,Jeepney,route,5,Makati City Area Transit Map PDF + jeepney_codes(1).csv
+B1,EDSA mainly,Bus,route,12,Makati City Area Transit Map PDF bus codes B1-B4/FB
+B2,EDSA then South Super Highway,Bus,route,17,Makati City Area Transit Map PDF bus codes B1-B4/FB
+B3,EDSA-Ayala-Buendia to Manila Area,Bus,route,12,Makati City Area Transit Map PDF bus codes B1-B4/FB
+B4,South Super Highway only,Bus,route,8,Makati City Area Transit Map PDF bus codes B1-B4/FB
+FB,Fort Bus / BGC-Ayala loop,Bus,route,8,Makati City Area Transit Map PDF bus codes B1-B4/FB
+304,Mandaluyong City Hall-One Ayala,UV Express,route,6,makati_routes.csv / prototype UV Express-P2P corridor points
+C23,Pacita Complex - Makati Square,UV Express,route,8,makati_routes.csv / prototype UV Express-P2P corridor points
+C25,Pacita Complex - SM Makati,UV Express,route,8,makati_routes.csv / prototype UV Express-P2P corridor points
+C26,Pacita Complex - Makati Square,UV Express,route,8,makati_routes.csv / prototype UV Express-P2P corridor points
+N14,Palar - SM Makati,UV Express,route,7,makati_routes.csv / prototype UV Express-P2P corridor points
+N32,Lower Bicutan - SM Makati,UV Express,route,7,makati_routes.csv / prototype UV Express-P2P corridor points
+T226,FTI - Kayamanan C,UV Express,route,3,makati_routes.csv / prototype UV Express-P2P corridor points
+T3155,L. Guinto - Makati via San Andres,UV Express,route,8,makati_routes.csv / prototype UV Express-P2P corridor points
+T3156,Makati PUJ Loop,UV Express,route,8,makati_routes.csv / prototype UV Express-P2P corridor points
+UV01,One Ayala - Alabang Town Center,UV Express,route,7,Prototype supplemental UV Express corridor
+UV02,Makati - Las Piñas,UV Express,route,5,Prototype supplemental UV Express corridor
+UV03,Makati - Antipolo via Ortigas,UV Express,route,6,Prototype supplemental UV Express corridor
+UV04,Makati - Cubao via EDSA,UV Express,route,7,Prototype supplemental UV Express corridor
+LRT1,LRT-1 Full Line,Train LRT-1,route,14,Rail station point reference for prototype
+MRT3,MRT-3 Full Line,Train MRT-3,route,13,Rail station point reference for prototype
+LRT2,LRT-2 Full Line,Train LRT-2,route,13,Rail station point reference for prototype
