@@ -10,7 +10,6 @@ import { SavedRoutesScreen } from "./components/SavedRoutesScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { BottomNav } from "./components/BottomNav";
-import { RouteMapModal } from "./components/RouteMapModal";
 import {
   clearLocalGuestProfile,
   ensureGuestUser,
@@ -54,10 +53,9 @@ export default function App() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [activeTab, setActiveTab] = useState<AppTab>("home");
   const [homeFlow, setHomeFlow] = useState<HomeFlow>("prompt");
-  const [homeActiveRouteId, setHomeActiveRouteId] = useState<string | null>(null);
+  const [homeActiveRouteIds, setHomeActiveRouteIds] = useState<string[]>([]);
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [routeModal, setRouteModal] = useState<{ from: string; to: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
@@ -211,18 +209,25 @@ export default function App() {
               <HomeScreen
                 user={currentUser}
                 flow={homeFlow}
-                activeRouteId={homeActiveRouteId}
+                activeRouteIds={homeActiveRouteIds}
                 onFlowChange={setHomeFlow}
-                onActiveRouteChange={setHomeActiveRouteId}
+                onActiveRouteIdsChange={setHomeActiveRouteIds}
                 onVehicleSelect={(v) => { setSelectedVehicle(v); setSubScreen("tracking"); }}
               />
             )}
             {activeTab === "routes" && (
-              <RoutePlannerScreen onShowMap={(from, to) => setRouteModal({ from, to })} />
+              <RoutePlannerScreen
+                activeRouteIds={homeActiveRouteIds}
+                onSelectRoute={(routeId) => {
+                  setHomeActiveRouteIds([routeId]);
+                  setHomeFlow("map");
+                  setActiveTab("home");
+                }}
+              />
             )}
             {activeTab === "notifications" && <NotificationsScreen />}
             {activeTab === "saved" && (
-              <SavedRoutesScreen onShowMap={(from, to) => setRouteModal({ from, to })} />
+              <SavedRoutesScreen onShowMap={() => undefined} />
             )}
             {activeTab === "profile" && (
               <ProfileScreen
@@ -240,13 +245,6 @@ export default function App() {
       )}
 
       {/* Route map modal — rendered above everything including bottom nav */}
-      {routeModal && (
-        <RouteMapModal
-          from={routeModal.from}
-          to={routeModal.to}
-          onClose={() => setRouteModal(null)}
-        />
-      )}
     </Shell>
   );
 }
