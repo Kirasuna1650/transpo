@@ -1,0 +1,11 @@
+node_modules
+android/**/build
+build
+dist
+.git
+.github
+.vscode
+*.log
+.env
+.env.*
+coverage

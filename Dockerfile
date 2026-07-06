@@ -1,0 +1,19 @@
+FROM node:20-alpine@sha256:afdf98210b07b586eb71fa22ba2e432e058e4cd1304d31ed60888755b8c865fb
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --legacy-peer-deps
+
+COPY . .
+
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+
+RUN npm run build
+
+EXPOSE 8182
+
+CMD ["npm", "run", "preview"]
