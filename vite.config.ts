@@ -24,6 +24,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['transpo.kirasuna.org', 'localhost', '127.0.0.1'],
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory
@@ -33,7 +37,7 @@ export default defineConfig({
 
   preview: {
     host: '0.0.0.0',
-    allowedHosts: ['https://transpo.kirasuna.org'],
+    allowedHosts: ['transpo.kirasuna.org', 'localhost', '127.0.0.1'],
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
