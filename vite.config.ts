@@ -31,6 +31,11 @@ export default defineConfig({
     },
   },
 
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: ['transpo.kirasuna.org'],
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })
