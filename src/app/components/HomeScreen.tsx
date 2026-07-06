@@ -7,6 +7,10 @@ import { ensureGuestUser, supabase } from "../lib/supabase";
 import { GOLDEN_ROUTE_GROUPS, GOLDEN_ROUTE_VEHICLES } from "../data/routes";
 import gpsIcon from "../assets/gps.jpg";
 import gpsIconInverted from "../assets/gps_inverted.png";
+import busIcon from "../assets/bus.png";
+import jeepneyIcon from "../assets/jeepney.png";
+import trainIcon from "../assets/train.png";
+import uvIcon from "../assets/uv.png";
 
 type HomeFlow = "prompt" | "map" | "routes";
 
@@ -14,8 +18,12 @@ interface Props {
   user: User | null;
   flow: HomeFlow;
   activeRouteIds: string[];
+  isSharingLocation: boolean;
+  userLocation: SearchedLocation | null;
+  locationStatus: string;
   onFlowChange: (flow: HomeFlow) => void;
   onActiveRouteIdsChange: (routeIds: string[]) => void;
+  onToggleLocationSharing: () => void;
   onVehicleSelect: (v: Vehicle) => void;
 }
 
@@ -32,39 +40,38 @@ const PICKER_FILTERS: Array<{ id: Vehicle["type"] | "all"; label: string }> = [
   { id: "train", label: "Train" },
 ];
 
-function routeBadge(type: Vehicle["type"]) {
-  if (type === "bus") return "BUS";
-  if (type === "train") return "MRT";
-  if (type === "uvexpress") return "UV";
-  return "PUJ";
+const VEHICLE_ICON_BY_TYPE: Record<Vehicle["type"], string> = {
+  bus: busIcon,
+  jeepney: jeepneyIcon,
+  train: trainIcon,
+  uvexpress: uvIcon,
+};
+
+function VehicleTypeIcon({ type, size = 28 }: { type: Vehicle["type"]; size?: number }) {
+  return (
+    <img
+      src={VEHICLE_ICON_BY_TYPE[type]}
+      alt=""
+      style={{ width: size, height: size, objectFit: "contain", display: "block" }}
+    />
+  );
 }
 
 function capacityLabel(vehicle: Vehicle) {
   return `${vehicle.capacity.charAt(0).toUpperCase()}${vehicle.capacity.slice(1)}`;
 }
 
-export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveRouteIdsChange, onVehicleSelect }: Props) {
-  const [isSharingLocation, setIsSharingLocation] = useState(false);
-  const [userLocation, setUserLocation] = useState<SearchedLocation | null>(null);
-  const [locationStatus, setLocationStatus] = useState("GPS sharing is off");
+export function HomeScreen({ user, flow, activeRouteIds, isSharingLocation, userLocation, locationStatus, onFlowChange, onActiveRouteIdsChange, onToggleLocationSharing, onVehicleSelect }: Props) {
   const [routeSelectionStatus, setRouteSelectionStatus] = useState("Select Route");
   const [pickerFilter, setPickerFilter] = useState<Vehicle["type"] | "all">("all");
+  const [activeTripId, setActiveTripId] = useState<string | null>(null);
+  const [tripStatus, setTripStatus] = useState("No active trip");
   const loadedFrequentRouteRef = useRef(false);
-  const watchIdRef = useRef<number | null>(null);
   const userIdRef = useRef<string | null>(user?.id ?? null);
 
   useEffect(() => {
     userIdRef.current = user?.id ?? userIdRef.current;
   }, [user?.id]);
-
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-    };
-  }, []);
 
   const activeRouteId = activeRouteIds[0] ?? null;
   const activeVehicle = activeRouteId ? VEHICLES_BY_ID[activeRouteId] : null;
@@ -132,79 +139,78 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
     if (!selected) void recordRouteSelection(routeId);
   };
 
-  const upsertUserLocation = async (lat: number, lng: number) => {
-    if (!supabase) {
-      setLocationStatus("Add Supabase env values before sharing");
-      return;
-    }
-
-    if (!userIdRef.current) {
-      const { user: guestUser, error } = await ensureGuestUser();
-      if (error || !guestUser) {
-        setLocationStatus(error?.message || "Unable to create anonymous user");
-        return;
-      }
-      userIdRef.current = guestUser.id;
-    }
-
-    const { error } = await supabase.from("user_locations").upsert(
-      {
-        user_id: userIdRef.current,
-        latitude: lat,
-        longitude: lng,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
-
-    setLocationStatus(error ? error.message : "Sharing GPS location");
-  };
-
-  const startGpsSharing = async () => {
-    if (watchIdRef.current !== null) return;
-
-    if (!("geolocation" in navigator)) {
-      setLocationStatus("Browser geolocation is not available on this device");
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        setUserLocation({ lat, lon: lng, name: "Your live location" });
-        void upsertUserLocation(lat, lng);
-      },
-      (error) => {
-        setLocationStatus(error.message || "Unable to read GPS position");
-        setIsSharingLocation(false);
-        if (watchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(watchIdRef.current);
-          watchIdRef.current = null;
-        }
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
-
-    watchIdRef.current = watchId;
-    setIsSharingLocation(true);
-    setLocationStatus("Starting GPS sharing");
-  };
-
-  const stopGpsSharing = () => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    setIsSharingLocation(false);
-    setLocationStatus("GPS sharing is off");
-  };
-
   const openRouteOnMap = (vehicle: Vehicle) => {
     onActiveRouteIdsChange([vehicle.id]);
     setRouteSelectionStatus("Selected route");
     void recordRouteSelection(vehicle.id);
     onFlowChange("map");
+  };
+
+  const ensureTripUserId = async () => {
+    if (userIdRef.current) return userIdRef.current;
+    const { user: guestUser, error } = await ensureGuestUser();
+    if (error || !guestUser) {
+      setTripStatus(error?.message || "Unable to create guest trip profile");
+      return null;
+    }
+    userIdRef.current = guestUser.id;
+    return guestUser.id;
+  };
+
+  const startTrip = async () => {
+    if (!activeRouteIds.length) {
+      setTripStatus("Select a route before starting");
+      return;
+    }
+
+    if (!supabase) {
+      setActiveTripId(`local-${Date.now()}`);
+      setTripStatus("Trip started locally");
+      return;
+    }
+
+    const userId = await ensureTripUserId();
+    if (!userId) return;
+
+    const { data, error } = await supabase
+      .from("trip_history")
+      .insert({
+        user_id: userId,
+        route_ids: activeRouteIds,
+        started_at: new Date().toISOString(),
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      setTripStatus(error.message);
+      return;
+    }
+
+    setActiveTripId(data.id);
+    setTripStatus("Trip started");
+  };
+
+  const endTrip = async () => {
+    if (!activeTripId) return;
+
+    if (!supabase || activeTripId.startsWith("local-")) {
+      setActiveTripId(null);
+      setTripStatus("Trip ended locally");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("trip_history")
+      .update({
+        ended_at: new Date().toISOString(),
+        status: "completed",
+      })
+      .eq("id", activeTripId);
+
+    setActiveTripId(null);
+    setTripStatus(error ? error.message : "Trip saved to history");
   };
 
   if (flow === "prompt") {
@@ -282,7 +288,7 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
                     }}
                   >
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F1F1F1", color: "#3F3F3F", fontSize: 12, fontWeight: 900 }}>
-                      {routeBadge(vehicle.type)}
+                      <VehicleTypeIcon type={vehicle.type} />
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <p className="truncate" style={{ color: "#2F2F2F", fontSize: 15, fontWeight: 800 }}>{vehicle.routeName}</p>
@@ -330,7 +336,7 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
         </button>
 
         <button
-          onClick={isSharingLocation ? stopGpsSharing : startGpsSharing}
+          onClick={onToggleLocationSharing}
           className="h-12 w-12 rounded-2xl flex items-center justify-center"
           title="Toggle GPS location sharing"
           style={{
@@ -348,21 +354,21 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
       </div>
 
       <div
-        className="absolute left-4 right-4 rounded-2xl p-4"
+        className="absolute left-4 right-4 rounded-2xl p-3"
         style={{ bottom: 18, zIndex: 40, background: "rgba(255,255,255,0.98)", border: "1px solid #D8D8D8", boxShadow: "0 10px 28px rgba(0,0,0,0.14)" }}
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-3">
             {activeVehicle ? (
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F1F1F1", color: "#3F3F3F", fontSize: 12, fontWeight: 900 }}>
-                {routeBadge(activeVehicle.type)}
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F1F1F1", color: "#3F3F3F", fontSize: 11, fontWeight: 900 }}>
+                <VehicleTypeIcon type={activeVehicle.type} size={24} />
               </div>
             ) : null}
             <div className="flex-1 min-w-0">
-              <p className="truncate" style={{ color: "#2F2F2F", fontSize: 15, fontWeight: 900 }}>
+              <p className="truncate" style={{ color: "#2F2F2F", fontSize: 14, fontWeight: 900 }}>
                 {activeVehicle ? activeVehicle.routeName : "Select Route"}
               </p>
-              <p style={{ color: "#7A7A7A", fontSize: 12, marginTop: 3 }}>
+              <p style={{ color: "#7A7A7A", fontSize: 11, marginTop: 2 }}>
                 {activeRouteIds.length > 1 ? `${activeRouteIds.length} routes selected` : routeSelectionStatus}
               </p>
             </div>
@@ -383,7 +389,7 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
                     background: active ? "#233D4D" : "#F1F1F1",
                     border: active ? "1px solid #233D4D" : "1px solid #D8D8D8",
                     color: active ? "#FFFFFF" : "#3F3F3F",
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: 900,
                   }}
                 >
@@ -393,7 +399,7 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
             })}
           </div>
 
-          <div className="max-h-44 overflow-y-auto pr-1 flex flex-col gap-2">
+          <div className="max-h-28 overflow-y-auto pr-1 flex flex-col gap-1.5">
             {GOLDEN_ROUTE_GROUPS.filter((group) => pickerFilter === "all" || group.type === pickerFilter).map((group) => (
               <div key={group.label} className="flex flex-wrap gap-2">
                 {group.routes.map((route) => {
@@ -405,12 +411,12 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
                     <button
                       key={route.id}
                       onClick={() => toggleRouteSelection(route.id)}
-                      className="rounded-full px-3 py-2"
+                      className="rounded-full px-2.5 py-1.5"
                       style={{
                         background: selected ? "#2FA4D7" : "#F1F1F1",
                         border: selected ? "1px solid #2FA4D7" : "1px solid #D8D8D8",
                         color: selected ? "#111111" : "#3F3F3F",
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: 900,
                       }}
                     >
@@ -422,9 +428,18 @@ export function HomeScreen({ user, flow, activeRouteIds, onFlowChange, onActiveR
             ))}
           </div>
 
-          <p style={{ color: "#7A7A7A", fontSize: 11, lineHeight: 1.45 }}>
-            {locationStatus}. Select one or combine routes for the commuter path preview.
-          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={activeTripId ? endTrip : startTrip}
+              className="shrink-0 rounded-full px-3 py-2"
+              style={{ background: activeTripId ? "#2F2F2F" : "#2FA4D7", color: activeTripId ? "#FFFFFF" : "#111111", fontSize: 11, fontWeight: 900 }}
+            >
+              {activeTripId ? "End Trip" : "Start Trip"}
+            </button>
+            <p className="truncate" style={{ color: "#7A7A7A", fontSize: 10, lineHeight: 1.35 }}>
+              {tripStatus} - {locationStatus}
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -8,6 +8,10 @@ interface Props {
   user: User | null;
   isGuest: boolean;
   profile: ProfileRecord | null;
+  isSharingLocation: boolean;
+  userLocation: { lat: number; lon: number; name: string } | null;
+  locationStatus: string;
+  onToggleLocationSharing: () => void;
   onSettings: () => void;
   onSaveProfile: (profile: ProfileRecord) => Promise<string | undefined>;
   onSignOut: () => void;
@@ -27,7 +31,7 @@ const TRANSPORT_PREFS = [
   { id: "uvexpress", label: "UV Express" },
 ];
 
-export function ProfileScreen({ user, isGuest, profile, onSettings, onSaveProfile, onSignOut }: Props) {
+export function ProfileScreen({ user, isGuest, profile, isSharingLocation, userLocation, locationStatus, onToggleLocationSharing, onSettings, onSaveProfile, onSignOut }: Props) {
   const [selectedRole, setSelectedRole] = useState("commuter");
   const [selectedTransport, setSelectedTransport] = useState(["jeepney", "train"]);
   const [showHistory, setShowHistory] = useState(false);
@@ -195,7 +199,12 @@ export function ProfileScreen({ user, isGuest, profile, onSettings, onSaveProfil
         </div>
       </div>
 
-      <UserLocationSharing user={user} />
+      <UserLocationSharing
+        isSharing={isSharingLocation}
+        currentLocation={userLocation}
+        status={locationStatus}
+        onToggle={onToggleLocationSharing}
+      />
 
       <div className="px-4 mb-4">
         <button

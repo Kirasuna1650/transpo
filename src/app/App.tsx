@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SplashScreen } from "./components/SplashScreen";
 import { OnboardingScreen } from "./components/OnboardingScreen";
 import { AuthScreen } from "./components/AuthScreen";
@@ -48,6 +48,13 @@ type AppPhase = "splash" | "onboarding" | "auth" | "app";
 type AppTab = "home" | "routes" | "notifications" | "saved" | "profile";
 type SubScreen = null | "tracking" | "settings";
 type HomeFlow = "prompt" | "map" | "routes";
+const GPS_SHARING_KEY = "transpo_gps_sharing_enabled";
+
+interface SharedLocation {
+  lat: number;
+  lon: number;
+  name: string;
+}
 
 export default function App() {
   const [phase, setPhase] = useState<AppPhase>("splash");
@@ -60,6 +67,15 @@ export default function App() {
   const [isGuest, setIsGuest] = useState(false);
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [authError, setAuthError] = useState("");
+  const [isSharingLocation, setIsSharingLocation] = useState(() => localStorage.getItem(GPS_SHARING_KEY) === "true");
+  const [sharedLocation, setSharedLocation] = useState<SharedLocation | null>(null);
+  const [locationStatus, setLocationStatus] = useState("GPS sharing is off");
+  const watchIdRef = useRef<number | null>(null);
+  const userIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    userIdRef.current = currentUser?.id ?? profile?.id ?? userIdRef.current;
+  }, [currentUser?.id, profile?.id]);
 
   useEffect(() => {
     if (phase === "splash") {
@@ -170,6 +186,92 @@ export default function App() {
     setPhase("auth");
   };
 
+  const upsertSharedLocation = async (lat: number, lng: number) => {
+    if (!supabase) {
+      setLocationStatus("Add Supabase env values before sharing");
+      return;
+    }
+
+    if (!userIdRef.current) {
+      const { user: guestUser, error } = await ensureGuestUser();
+      if (error || !guestUser) {
+        setLocationStatus(error?.message || "Unable to create anonymous user");
+        return;
+      }
+      userIdRef.current = guestUser.id;
+    }
+
+    const { error } = await supabase.from("user_locations").upsert(
+      {
+        user_id: userIdRef.current,
+        latitude: lat,
+        longitude: lng,
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+    setLocationStatus(error ? error.message : "Sharing GPS location");
+  };
+
+  const startLocationSharing = async () => {
+    if (watchIdRef.current !== null) return;
+
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("Browser geolocation is not available on this device");
+      setIsSharingLocation(false);
+      localStorage.removeItem(GPS_SHARING_KEY);
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setSharedLocation({ lat, lon: lng, name: "Your live location" });
+        void upsertSharedLocation(lat, lng);
+      },
+      (error) => {
+        setLocationStatus(error.message || "Unable to read GPS position");
+        setIsSharingLocation(false);
+        localStorage.removeItem(GPS_SHARING_KEY);
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+
+    watchIdRef.current = watchId;
+    setIsSharingLocation(true);
+    setLocationStatus("Starting GPS sharing");
+    localStorage.setItem(GPS_SHARING_KEY, "true");
+  };
+
+  const stopLocationSharing = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsSharingLocation(false);
+    setLocationStatus("GPS sharing is off");
+    localStorage.removeItem(GPS_SHARING_KEY);
+  };
+
+  useEffect(() => {
+    if (isSharingLocation && watchIdRef.current === null) {
+      void startLocationSharing();
+    }
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, []);
+
   const Shell = ({ children }: { children: React.ReactNode }) => (
     <div className="flex items-center justify-center w-full h-full" style={{ background: "#0a0a0a" }}>
       <div
@@ -210,8 +312,12 @@ export default function App() {
                 user={currentUser}
                 flow={homeFlow}
                 activeRouteIds={homeActiveRouteIds}
+                isSharingLocation={isSharingLocation}
+                userLocation={sharedLocation}
+                locationStatus={locationStatus}
                 onFlowChange={setHomeFlow}
                 onActiveRouteIdsChange={setHomeActiveRouteIds}
+                onToggleLocationSharing={isSharingLocation ? stopLocationSharing : startLocationSharing}
                 onVehicleSelect={(v) => { setSelectedVehicle(v); setSubScreen("tracking"); }}
               />
             )}
@@ -225,15 +331,26 @@ export default function App() {
                 }}
               />
             )}
-            {activeTab === "notifications" && <NotificationsScreen />}
+            {activeTab === "notifications" && <NotificationsScreen activeRouteIds={homeActiveRouteIds} />}
             {activeTab === "saved" && (
-              <SavedRoutesScreen onShowMap={() => undefined} />
+              <SavedRoutesScreen
+                activeRouteIds={homeActiveRouteIds}
+                onSelectRoute={(routeId) => {
+                  setHomeActiveRouteIds([routeId]);
+                  setHomeFlow("map");
+                  setActiveTab("home");
+                }}
+              />
             )}
             {activeTab === "profile" && (
               <ProfileScreen
                 user={currentUser}
                 isGuest={isGuest}
                 profile={profile}
+                isSharingLocation={isSharingLocation}
+                userLocation={sharedLocation}
+                locationStatus={locationStatus}
+                onToggleLocationSharing={isSharingLocation ? stopLocationSharing : startLocationSharing}
                 onSettings={() => setSubScreen("settings")}
                 onSaveProfile={handleSaveProfile}
                 onSignOut={handleSignOut}

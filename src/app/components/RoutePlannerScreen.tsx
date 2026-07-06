@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { Map as MapIcon, Search } from "lucide-react";
 import type { Vehicle, VehicleType } from "../App";
 import { GOLDEN_ROUTE_GROUPS, GOLDEN_ROUTE_VEHICLES } from "../data/routes";
+import busIcon from "../assets/bus.png";
+import jeepneyIcon from "../assets/jeepney.png";
+import trainIcon from "../assets/train.png";
+import uvIcon from "../assets/uv.png";
 
 interface Props {
   activeRouteIds: string[];
@@ -18,11 +22,21 @@ const MODE_FILTERS: Array<{ id: VehicleType | "all"; label: string }> = [
 
 const VEHICLES_BY_ID = new Map(GOLDEN_ROUTE_VEHICLES.map((vehicle) => [vehicle.id, vehicle]));
 
-function routeBadge(type: VehicleType) {
-  if (type === "bus") return "BUS";
-  if (type === "train") return "MRT";
-  if (type === "uvexpress") return "UV";
-  return "PUJ";
+const VEHICLE_ICON_BY_TYPE: Record<VehicleType, string> = {
+  bus: busIcon,
+  jeepney: jeepneyIcon,
+  train: trainIcon,
+  uvexpress: uvIcon,
+};
+
+function VehicleTypeIcon({ type }: { type: VehicleType }) {
+  return (
+    <img
+      src={VEHICLE_ICON_BY_TYPE[type]}
+      alt=""
+      style={{ width: 30, height: 30, objectFit: "contain", display: "block" }}
+    />
+  );
 }
 
 function goldenVehicles() {
@@ -98,7 +112,7 @@ export function RoutePlannerScreen({ activeRouteIds, onSelectRoute }: Props) {
             >
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#233D4D", color: "#2FA4D7", fontSize: 12, fontWeight: 900 }}>
-                  {routeBadge(vehicle.type)}
+                  <VehicleTypeIcon type={vehicle.type} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 style={{ color: "#EAECF0", fontSize: 15, fontWeight: 900, lineHeight: 1.25 }}>{vehicle.routeName}</h2>

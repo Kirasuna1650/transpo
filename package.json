@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "snap:routes": "node scripts/snapRoutes.mjs"
+    "snap:routes": "node scripts/snapRoutes.mjs",
+    "simulate:traffic": "node simulateTraffic.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

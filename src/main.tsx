@@ -23,9 +23,6 @@ function showStartupError(error: unknown) {
   `;
 }
 
-window.addEventListener("error", (event) => showStartupError(event.error || event.message));
-window.addEventListener("unhandledrejection", (event) => showStartupError(event.reason));
-
 import("./app/App.tsx")
   .then(({ default: App }) => {
     createRoot(document.getElementById("root")!).render(<App />);

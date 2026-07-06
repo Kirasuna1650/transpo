@@ -15,5 +15,9 @@ create table if not exists public.vehicles (
   label text,
   latitude double precision,
   longitude double precision,
+  metadata jsonb,
   last_seen_at timestamp with time zone default timezone('utc'::text, now())
 );
+
+alter table public.vehicles
+add column if not exists metadata jsonb;
